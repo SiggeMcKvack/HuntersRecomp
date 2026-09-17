@@ -696,7 +696,7 @@ public class SettingsActivity extends Activity {
                     .append("app: ").append(getPackageManager()
                         .getPackageInfo(getPackageName(), 0).versionName)
                     .append("\n").append("settings: ")
-                    .append(prefs.getAll().toString()).append("\n");
+                    .append(shareableSettings()).append("\n");
                 out.putNextEntry(new java.util.zip.ZipEntry("device-info.txt"));
                 out.write(info.toString().getBytes());
                 out.closeEntry();
@@ -729,6 +729,13 @@ public class SettingsActivity extends Activity {
                 "Could not build diagnostics zip: " + e.getMessage(),
                 android.widget.Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String shareableSettings() {
+        java.util.Map<String, ?> all = new java.util.HashMap<>(prefs.getAll());
+        all.remove("ra_password");
+        all.remove("ra_token");
+        return all.toString();
     }
 
     // ── Second-screen companion ──────────────────────────────────────────
