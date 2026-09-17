@@ -80,11 +80,15 @@ public class SettingsActivity extends Activity {
     static final int ACCENT = Color.parseColor("#FF8A3D");
     static final int TEXT = Color.parseColor("#E8E2D8");
     static final int DIM = Color.parseColor("#8A8578");
+    static final int OK = Color.parseColor("#7FC97F");
+    static final int WARN = Color.parseColor("#E8C468");
+    static final int ERR = Color.parseColor("#E07A5F");
 
     static final String ROM_SHA1 = "90164d1ac127ee5f9815ea4ae7de798c7b5fc629";
     static final long ROM_SIZE = 67108864L;
 
     private SharedPreferences prefs;
+    private Runnable paintAchState;
     private TextView romStatus;
     private Button locateButton;
 
@@ -96,13 +100,13 @@ public class SettingsActivity extends Activity {
         java.io.File rom = romFile();
         if (rom.exists() && rom.length() == ROM_SIZE) {
             romStatus.setText("ROM: found (Metroid Prime Hunters, USA rev 0)");
-            romStatus.setTextColor(Color.parseColor("#7FC97F"));
+            romStatus.setTextColor(OK);
             locateButton.setVisibility(View.GONE);
         } else {
             romStatus.setText("ROM not found. This app includes no game data: "
                 + "provide your own dump of Metroid Prime Hunters (USA rev 0, "
                 + "64 MiB). Tap LOCATE ROM and pick your .nds file.");
-            romStatus.setTextColor(Color.parseColor("#E07A5F"));
+            romStatus.setTextColor(ERR);
             locateButton.setVisibility(View.VISIBLE);
         }
     }
@@ -150,7 +154,7 @@ public class SettingsActivity extends Activity {
                 if (err != null) {
                     romFile().delete();
                     romStatus.setText(err);
-                    romStatus.setTextColor(Color.parseColor("#E07A5F"));
+                    romStatus.setTextColor(ERR);
                     locateButton.setVisibility(View.VISIBLE);
                 } else {
                     refreshRomStatus();
@@ -179,7 +183,6 @@ public class SettingsActivity extends Activity {
         root.setPadding(pad, pad, pad, pad);
         scroll.addView(root);
         setContentView(scroll);
-        showCompanion();
 
         // ── Header ───────────────────────────────────────────────────────
         LinearLayout header = new LinearLayout(this);
@@ -210,7 +213,7 @@ public class SettingsActivity extends Activity {
         update.setText(android.text.Html.fromHtml(
             "<u>Make sure you're running the latest version</u>",
             android.text.Html.FROM_HTML_MODE_LEGACY));
-        update.setTextColor(Color.parseColor("#E8C468"));
+        update.setTextColor(WARN);
         update.setTextSize(13);
         update.setOnClickListener(v -> startActivity(new Intent(
             Intent.ACTION_VIEW, android.net.Uri.parse(
@@ -295,26 +298,16 @@ public class SettingsActivity extends Activity {
                          "3x (1344×576) · recommended",
                          "4x (1792×768) · sharper, slight audio crackle"},
             new String[]{"1", "2", "3", "4"}, "3");
-        TextView resNote = new TextView(this);
-        resNote.setText("3x is the recommended Thor setting: HD and within the "
+        note(video, "3x is the recommended Thor setting: HD and within the "
             + "frame budget. 4x is sharper but the CPU waits on the GPU each "
-            + "frame, which can add a little audio crackle.");
-        resNote.setTextColor(DIM);
-        resNote.setTextSize(12);
-        resNote.setPadding(0, dp(2), 0, dp(8));
-        video.addView(resNote);
+            + "frame, which can add a little audio crackle.", 2, 8);
         addSpinner(video, "Texture upscaling (xBR)", "tex_upscale",
             new String[]{"Off (native textures)", "2x",
                          "4x · recommended"},
             new String[]{"1", "2", "4"}, "4");
-        TextView texNote = new TextView(this);
-        texNote.setText("xBR runs once per texture on the GPU and is cached, "
+        note(video, "xBR runs once per texture on the GPU and is cached, "
             + "so 4x costs almost nothing per frame. All Thor performance "
-            + "numbers were measured at 4x.");
-        texNote.setTextColor(DIM);
-        texNote.setTextSize(12);
-        texNote.setPadding(0, dp(2), 0, dp(8));
-        video.addView(texNote);
+            + "numbers were measured at 4x.", 2, 8);
         addSpinner(video, "Bottom screen", "bottom_aspect",
             new String[]{"Original 4:3", "Stretch to fill"},
             new String[]{"fit", "stretch"}, "fit");
@@ -325,25 +318,16 @@ public class SettingsActivity extends Activity {
         addSlider(controls, "Virtual stylus sensitivity", "stylus_sens", 10, 400, 20);
         addSwitch(controls, "Invert aim Y axis", "invert_y", false);
         addSwitch(controls, "Show FPS counter", "show_fps", false);
-        TextView hint = new TextView(this);
-        hint.setText("Hold SELECT for fast-forward (skips slow cinematics). "
-            + "START skips FMVs in-game.");
-        hint.setTextColor(DIM);
-        hint.setTextSize(12);
-        hint.setPadding(0, dp(8), 0, 0);
-        controls.addView(hint);
+        note(controls, "Hold SELECT for fast-forward (skips slow cinematics). "
+            + "START skips FMVs in-game.", 8, 0);
 
         // ── Bindings card ────────────────────────────────────────────────
         LinearLayout binds = card(root, "BUTTON BINDINGS");
-        TextView bhint = new TextView(this);
-        bhint.setText("Touchscreen actions mapped to physical buttons. "
-            + "Left stick = move, right stick = aim (fixed).");
-        bhint.setTextColor(DIM);
-        bhint.setTextSize(12);
-        bhint.setPadding(0, 0, 0, dp(8));
-        binds.addView(bhint);
+        note(binds, "Touchscreen actions mapped to physical buttons. "
+            + "Left stick = move, right stick = aim (fixed).", 0, 8);
         for (String[] action : ACTIONS)
-            addBinding(binds, action[1], "bind_" + action[0], action[2]);
+            addSpinner(binds, action[1], "bind_" + action[0],
+                PAD_VALUES, PAD_VALUES, action[2]);
         Button reset = new Button(this);
         reset.setText("Reset bindings to defaults");
         reset.setTextColor(ACCENT);
@@ -372,10 +356,10 @@ public class SettingsActivity extends Activity {
                 raStatus.setTextColor(DIM);
             } else if (tok) {
                 raStatus.setText("Logged in as " + u + " (session token saved)");
-                raStatus.setTextColor(Color.parseColor("#7FC97F"));
+                raStatus.setTextColor(OK);
             } else {
                 raStatus.setText("Will log in as " + u + " at next launch");
-                raStatus.setTextColor(Color.parseColor("#E8C468"));
+                raStatus.setTextColor(WARN);
             }
         };
         paintRaStatus.run();
@@ -419,19 +403,13 @@ public class SettingsActivity extends Activity {
         addSwitch(ra, "Hardcore mode (disables fast-forward)", "ra_hardcore", false);
         addSwitch(ra, "RA status on the bottom screen (Original 4:3 only)",
                   "ra_strip", false);
-        TextView raStripNote = new TextView(this);
-        raStripNote.setText("Off by default. When on, and the bottom screen is "
+        note(ra, "Off by default. When on, and the bottom screen is "
             + "set to Original 4:3, the progress line sits in the bottom black "
             + "bar and unlock banners in the top bar, never over the game. In "
-            + "Stretch mode nothing is drawn on the bottom screen.");
-        raStripNote.setTextColor(DIM);
-        raStripNote.setTextSize(12);
-        raStripNote.setPadding(0, dp(2), 0, dp(6));
-        ra.addView(raStripNote);
+            + "Stretch mode nothing is drawn on the bottom screen.", 2, 6);
         addSwitch(ra, "Report RA's linked hash (rev 1) for this rev 0 dump",
                   "ra_hash_override", false);
-        TextView raHashNote = new TextView(this);
-        raHashNote.setText("Hash notes: this port runs the USA rev 0 cartridge, "
+        note(ra, "Hash notes: this port runs the USA rev 0 cartridge, "
             + "whose RA hash is e4d94ad05dd5490e73ae9cb0b21f0d6b. "
             + "retroachievements.org currently links only "
             + "b6947e630bcf9e68aa3cf998d89357ac (rev 1) to game 1378, so rev 0 "
@@ -440,19 +418,10 @@ public class SettingsActivity extends Activity {
             + "a rev 1 dump you are not running, unlocks (hardcore especially) "
             + "may be treated as unsupported or revoked, and the set's memory "
             + "addresses were written against rev 1. The real hash is logged "
-            + "every launch. The clean fix is asking RA to link the rev 0 hash.");
-        raHashNote.setTextColor(Color.parseColor("#E8C468"));
-        raHashNote.setTextSize(12);
-        raHashNote.setPadding(0, dp(4), 0, dp(4));
-        ra.addView(raHashNote);
-        TextView raNote = new TextView(this);
-        raNote.setText("Unlocks pop up on screen and are submitted to your "
+            + "every launch. The clean fix is asking RA to link the rev 0 hash.", 4, 4).setTextColor(WARN);
+        note(ra, "Unlocks pop up on screen and are submitted to your "
             + "retroachievements.org profile (Metroid Prime Hunters, game 1378). "
-            + "Hardcore counts only when it was on for the whole session.");
-        raNote.setTextColor(DIM);
-        raNote.setTextSize(12);
-        raNote.setPadding(0, dp(6), 0, 0);
-        ra.addView(raNote);
+            + "Hardcore counts only when it was on for the whole session.", 6, 0);
 
         // ── Achievements browser (after login) ───────────────────────────
         LinearLayout ach = card(root, "ACHIEVEMENTS");
@@ -471,7 +440,7 @@ public class SettingsActivity extends Activity {
         achLp.topMargin = dp(6);
         ach.addView(achLoad, achLp);
         ach.addView(achList);
-        Runnable paintAchState = () -> {
+        paintAchState = () -> {
             boolean loggedIn = !prefs.getString("ra_token", "").isEmpty();
             achInfo.setText(loggedIn
                 ? "Fetches Metroid Prime Hunters' achievement list with your "
@@ -495,7 +464,11 @@ public class SettingsActivity extends Activity {
             new Thread(() -> {
                 String json;
                 try { json = nativeRaBrowse(user, token, rom, over); }
-                catch (Throwable t) { json = "{\"error\":\"" + t + "\"}"; }
+                catch (Throwable t) {
+                    json = new org.json.JSONObject(
+                        java.util.Collections.singletonMap("error", t.toString()))
+                        .toString();
+                }
                 final String result = json;
                 runOnUiThread(() -> {
                     achLoad.setEnabled(true);
@@ -520,9 +493,6 @@ public class SettingsActivity extends Activity {
                     }
                 });
             }, "ra-browse").start();
-        });
-        prefs.registerOnSharedPreferenceChangeListener((sp, key) -> {
-            if ("ra_token".equals(key)) paintAchState.run();
         });
 
         // ── Diagnostics sharing ──────────────────────────────────────────
@@ -573,6 +543,17 @@ public class SettingsActivity extends Activity {
         return card;
     }
 
+    private TextView note(LinearLayout parent, String text, int padTop,
+                          int padBottom) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(DIM);
+        tv.setTextSize(12);
+        tv.setPadding(0, dp(padTop), 0, dp(padBottom));
+        parent.addView(tv);
+        return tv;
+    }
+
     private void addSlider(LinearLayout parent, String label, String key,
                            int min, int max, int def) {
         TextView tv = new TextView(this);
@@ -618,18 +599,9 @@ public class SettingsActivity extends Activity {
             value -> prefs.edit().putString(key, value).apply());
     }
 
-    private void addBinding(LinearLayout parent, String label, String key,
-                            String def) {
-        addLabeledSpinner(parent, label, PAD_VALUES, PAD_VALUES,
-            prefs.getString(key, def),
-            value -> prefs.edit().putString(key, value).apply());
-    }
-
-    interface ValueSink { void accept(String value); }
-
     private void addLabeledSpinner(LinearLayout parent, String label,
                                    String[] labels, String[] values,
-                                   String current, ValueSink sink) {
+                                   String current, java.util.function.Consumer<String> sink) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -696,7 +668,7 @@ public class SettingsActivity extends Activity {
                     .append("app: ").append(getPackageManager()
                         .getPackageInfo(getPackageName(), 0).versionName)
                     .append("\n").append("settings: ")
-                    .append(prefs.getAll().toString()).append("\n");
+                    .append(shareableSettings()).append("\n");
                 out.putNextEntry(new java.util.zip.ZipEntry("device-info.txt"));
                 out.write(info.toString().getBytes());
                 out.closeEntry();
@@ -729,6 +701,13 @@ public class SettingsActivity extends Activity {
                 "Could not build diagnostics zip: " + e.getMessage(),
                 android.widget.Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String shareableSettings() {
+        java.util.Map<String, ?> all = new java.util.HashMap<>(prefs.getAll());
+        all.remove("ra_password");
+        all.remove("ra_token");
+        return all.toString();
     }
 
     // ── Second-screen companion ──────────────────────────────────────────
@@ -788,6 +767,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        paintAchState.run();
         showCompanion();
     }
 
@@ -801,13 +781,6 @@ public class SettingsActivity extends Activity {
     protected void onDestroy() {
         hideCompanion();
         super.onDestroy();
-    }
-
-    private String bound(String action) {
-        for (String[] a : ACTIONS)
-            if (a[0].equals(action))
-                return prefs.getString("bind_" + action, a[2]);
-        return "None";
     }
 
     /** Which action is on a given pad button, per current bindings. */
@@ -981,7 +954,7 @@ public class SettingsActivity extends Activity {
             ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView state = new TextView(this);
         state.setText(unlocked ? "✓" : "○");
-        state.setTextColor(unlocked ? Color.parseColor("#7FC97F") : DIM);
+        state.setTextColor(unlocked ? OK : DIM);
         state.setTextSize(18);
         state.setPadding(dp(8), 0, 0, 0);
         row.addView(state);
