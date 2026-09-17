@@ -85,6 +85,7 @@ public class SettingsActivity extends Activity {
     static final long ROM_SIZE = 67108864L;
 
     private SharedPreferences prefs;
+    private Runnable paintAchState;
     private TextView romStatus;
     private Button locateButton;
 
@@ -471,7 +472,7 @@ public class SettingsActivity extends Activity {
         achLp.topMargin = dp(6);
         ach.addView(achLoad, achLp);
         ach.addView(achList);
-        Runnable paintAchState = () -> {
+        paintAchState = () -> {
             boolean loggedIn = !prefs.getString("ra_token", "").isEmpty();
             achInfo.setText(loggedIn
                 ? "Fetches Metroid Prime Hunters' achievement list with your "
@@ -520,9 +521,6 @@ public class SettingsActivity extends Activity {
                     }
                 });
             }, "ra-browse").start();
-        });
-        prefs.registerOnSharedPreferenceChangeListener((sp, key) -> {
-            if ("ra_token".equals(key)) paintAchState.run();
         });
 
         // ── Diagnostics sharing ──────────────────────────────────────────
@@ -795,6 +793,7 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        paintAchState.run();
         showCompanion();
     }
 
