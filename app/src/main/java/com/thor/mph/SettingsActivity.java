@@ -1,12 +1,14 @@
 package com.thor.mph;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -160,6 +162,10 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        if (getDisplay().getDisplayId() != Display.DEFAULT_DISPLAY) {
+            startActivity(new Intent(this, SettingsActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), mainDisplayOptions());
+        }
         // Provision the app-owned external files dir on first open so users
         // (and adb) can drop mph.nds into a folder the app can actually read.
         getExternalFilesDir(null);
@@ -271,7 +277,7 @@ public class SettingsActivity extends Activity {
         playLp.topMargin = dp(18);
         play.setOnClickListener(v -> {
             if (romFile().exists() && romFile().length() == ROM_SIZE) {
-                startActivity(new Intent(this, MyGame.class));
+                startActivity(new Intent(this, MyGame.class), mainDisplayOptions());
             } else {
                 // No ROM: send the user through the locate flow instead of
                 // booting into a black screen.
@@ -750,6 +756,11 @@ public class SettingsActivity extends Activity {
         companionRefresh = (sp, key) -> {
             if (companionView != null) companionView.postInvalidate();
         };
+
+    private static Bundle mainDisplayOptions() {
+        return ActivityOptions.makeBasic()
+            .setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle();
+    }
 
     private void showCompanion() {
         if (companion != null) return;
