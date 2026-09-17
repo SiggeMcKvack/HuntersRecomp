@@ -74,6 +74,7 @@ public class SettingsActivity extends Activity {
 
     static final int BG = Color.parseColor("#0E1116");
     static final int CARD = Color.parseColor("#171C24");
+    static final int BUTTON = Color.parseColor("#1F2630");
     static final int ACCENT = Color.parseColor("#FF8A3D");
     static final int TEXT = Color.parseColor("#E8E2D8");
     static final int DIM = Color.parseColor("#8A8578");
@@ -392,7 +393,7 @@ public class SettingsActivity extends Activity {
         Button raSave = new Button(this);
         raSave.setText("SAVE LOGIN");
         raSave.setTextColor(ACCENT);
-        raSave.setBackgroundColor(Color.parseColor("#1F2630"));
+        raSave.setBackgroundColor(BUTTON);
         raSave.setOnClickListener(v -> {
             String u = raUser.getText().toString().trim();
             String pw = raPass.getText().toString();
@@ -458,7 +459,7 @@ public class SettingsActivity extends Activity {
         Button achLoad = new Button(this);
         achLoad.setText("LOAD ACHIEVEMENTS");
         achLoad.setTextColor(ACCENT);
-        achLoad.setBackgroundColor(Color.parseColor("#1F2630"));
+        achLoad.setBackgroundColor(BUTTON);
         LinearLayout.LayoutParams achLp = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, dp(44));
         achLp.topMargin = dp(6);
@@ -593,41 +594,15 @@ public class SettingsActivity extends Activity {
 
     private void addSwitch(LinearLayout parent, String label, String key,
                            boolean def) {
-        // Theme-proof toggle: the stock Switch is invisible on this legacy
-        // theme, so render our own ON/OFF pill button.
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(8), 0, dp(8));
-        TextView tv = new TextView(this);
-        tv.setText(label);
-        tv.setTextColor(TEXT);
-        tv.setTextSize(14);
-        row.addView(tv, new LinearLayout.LayoutParams(0,
-            ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        Button pill = new Button(this);
-        pill.setAllCaps(true);
-        pill.setTextSize(13);
-        pill.setTypeface(Typeface.DEFAULT_BOLD);
-        pill.setMinWidth(dp(88));
-        pill.setMinimumWidth(dp(88));
-        java.util.function.Consumer<Boolean> paint = on -> {
-            pill.setText(on ? "ON" : "OFF");
-            GradientDrawable bg = new GradientDrawable();
-            bg.setCornerRadius(dp(20));
-            bg.setColor(on ? ACCENT : Color.parseColor("#3A414B"));
-            pill.setBackground(bg);
-            pill.setTextColor(on ? Color.parseColor("#14100A") : DIM);
-        };
-        paint.accept(prefs.getBoolean(key, def));
-        pill.setOnClickListener(v -> {
-            boolean next = !prefs.getBoolean(key, def);
-            prefs.edit().putBoolean(key, next).apply();
-            paint.accept(next);
-        });
-        row.addView(pill, new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
-        parent.addView(row);
+        Switch sw = new Switch(this);
+        sw.setText(label);
+        sw.setTextColor(TEXT);
+        sw.setTextSize(14);
+        sw.setPadding(0, dp(8), 0, dp(8));
+        sw.setChecked(prefs.getBoolean(key, def));
+        sw.setOnCheckedChangeListener((b, on) ->
+            prefs.edit().putBoolean(key, on).apply());
+        parent.addView(sw);
     }
 
     private void addSpinner(LinearLayout parent, String label, String key,
@@ -681,7 +656,17 @@ public class SettingsActivity extends Activity {
             }
             @Override public void onNothingSelected(AdapterView<?> p) {}
         });
-        row.addView(spin);
+        spin.setBackgroundTintList(
+            android.content.res.ColorStateList.valueOf(ACCENT));
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(10));
+        bg.setColor(BUTTON);
+        box.setBackground(bg);
+        box.setPadding(dp(12), 0, dp(4), 0);
+        box.addView(spin);
+        row.addView(box, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)));
         parent.addView(row);
     }
 
