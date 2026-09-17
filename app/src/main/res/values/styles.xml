@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="android:Theme.NoTitleBar.Fullscreen">
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:colorPrimary">@color/card</item>
+        <item name="android:colorPrimaryDark">@color/bg</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/dim</item>
+        <item name="android:colorControlNormal">@color/dim</item>
+        <item name="android:colorButtonNormal">@color/button</item>
         <!-- Branded boot splash (Android 12+): the octolith mark on the dark
              theme colour while the runner loads. -->
         <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
